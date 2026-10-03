@@ -6,14 +6,15 @@
     "dev:port": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc"
+    "typecheck": "vue-tsc"
   },
   "portless": {
     "name": "k-angel-board",
     "script": "dev:port"
   },
   "dependencies": {
-    "protobufjs": "^8.8.0"
+    "protobufjs": "^8.8.0",
+    "vue": "^3.5.43"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.3.0",
@@ -21,12 +22,15 @@
     "@typed-sigterm/eslint-config": "^1.7.1",
     "@types/bun": "^1.4.0",
     "@types/web-bluetooth": "^0.0.21",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vue/tsconfig": "^0.9.1",
     "ag-psd": "^31.0.2",
     "eslint": "^10.9.1",
     "sharp": "^0.35.4",
     "typescript": "^6.0.3",
     "unplugin-portless": "^1.0.1",
     "vite": "^8.2.2",
-    "vite-plugin-arraybuffer": "^0.1.4"
+    "vite-plugin-arraybuffer": "^0.1.4",
+    "vue-tsc": "^3.3.12"
   }
 }

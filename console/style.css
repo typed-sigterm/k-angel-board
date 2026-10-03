@@ -21,6 +21,11 @@ body {
   cursor: pointer;
 }
 
+#grid canvas.disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 #grid canvas.current {
   border-color: hotpink;
 }

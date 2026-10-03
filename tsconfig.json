@@ -1,24 +1,8 @@
 {
+  "extends": "@vue/tsconfig",
   "compilerOptions": {
-    "target": "es2023",
-    "module": "esnext",
-    "lib": ["ES2023", "DOM"],
-    "types": ["vite/client", "web-bluetooth"],
-    "allowArbitraryExtensions": true,
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-
-    /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "lib": ["DOM", "ESNext"],
+    "types": ["web-bluetooth", "vite/client"]
   },
-  "include": ["src", "console"]
+  "include": ["console"]
 }
