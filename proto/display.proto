@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package kangel.display;
+
+// KAngel 灯板 BLE 消息的唯一真实来源（Single Source of Truth）。
+//
+//   - 固件侧（`src/bin/main.rs`）用 prost 编解码，
+//     `proto` 模块由 `build.rs` 经 prost-build 生成；
+//   - console 侧（`console/index.ts`）用 protobuf.js 编解码，
+//     运行时直接 `parse` 同一份 `.proto`。
+//
+// 扩展约定：新增消息一律追加新字段 / 新枚举值，绝不复用或重编号
+// 已有字段与枚举值；未知字段会被自动忽略，保证单向兼容。
+
+// 控制台 → 灯板：写入控制特征（UUID 0x9E01）的载荷。
+message Control {
+  Command command = 1;
+  // GOTO 命令的目标图片索引（从 0 开始）；其它命令忽略本字段。
+  uint32 index = 2;
+  // SET_BRIGHTNESS 命令的目标亮度（0-255）；其它命令忽略本字段。
+  uint32 brightness = 3;
+  // FRAME_CHUNK 命令的字节偏移（相对 16x16 RGB888 帧，0 起，共 768 字节）；
+  // 其它命令忽略本字段。
+  uint32 offset = 4;
+  // FRAME_CHUNK 命令的分片载荷（RGB888 原始字节）；
+  // 其它命令忽略本字段（保持为空）。
+  bytes pixels = 5;
+  // FRAME_CHUNK 最后一片置 true：固件攒齐整帧后一次性刷新并回状态确认；
+  // 其它命令忽略本字段。
+  bool last = 6;
+  // 目标灯板：0 = 三块板一起（默认，兼容旧 console）；
+  // 1/2/3 = 仅第 1/2/3 块板。图片类命令（NEXT/GOTO）中 0 表三块一起；
+  // 抽奖命令（LOTTERY_*）的 panel 必须为 1/2/3（每块板独立选图），0 非法；
+  // 其它命令（亮度 / 自动开关 / 调试 / 帧回传）全局生效，本字段被忽略。
+  uint32 panel = 7;
+  // LOTTERY_START 的滚动速度（行/秒，1-120，超限钳制）；
+  // 其它命令忽略本字段。
+  uint32 speed = 8;
+  // LOTTERY_START 的奖池位图：bit i 置位 = 第 i 张图片参与滚动（i 从 0 开始）。
+  // 单次 BLE 写入 20 字节上限内可携带 96 张图；控制台在发送前自行校验
+  // 「至少选中 1 张且序号 < 图片总数」，固件侧只做越界掩码与空池拒绝。
+  // 其它命令忽略本字段。
+  bytes lottery_mask = 9;
+}
+
+// 控制命令。线值从 1 开始顺序编号，0 保留给 UNKNOWN（收到后仅记日志）。
+enum Command {
+  COMMAND_UNSPECIFIED = 0; // 未指定：不执行任何动作
+  NEXT = 1; // 切换到下一张图片（调试模式下先退出调试）
+  AUTO_ON = 2; // 开启自动切换（调试模式下先退出调试）
+  AUTO_OFF = 3; // 停止自动切换（调试模式下先退出调试）
+  TOGGLE = 4; // 翻转自动切换开关（调试模式下先退出调试）
+  GOTO = 5; // 跳到 Control.index 指定的图片（调试模式下先退出调试）
+  DEBUG_ENTER = 6; // 进入调试模式：暂停图片轮播，显示调试帧缓冲
+  DEBUG_EXIT = 7; // 退出调试模式：回到当前图片显示
+  SET_BRIGHTNESS = 8; // 设置全局亮度为 Control.brightness（0-255，超限钳制）
+  FRAME_CHUNK = 9; // 上传调试帧分片：Control.offset + Control.pixels（自动进入调试）
+  FRAME_SEQ = 10; // 声明新帧序号：console 回传整帧前先发本命令（Control.index = 帧序号）
+  LOTTERY_START = 11; // 开始抽奖滚动：panel=1/2/3 单板，奖池见 lottery_mask
+  LOTTERY_STOP = 12; // 停止抽奖滚动：panel=1/2/3 停单板，panel=0 停三块板
+}
+
+// 灯板 → 控制台：状态特征（UUID 0x9E02）读取 / 通知的载荷。
+message Status {
+  uint32 index = 1; // 第 1 块板的图片索引（从 0 开始；兼容旧 console）
+  bool auto = 2; // 自动切换是否开启
+  bool debug = 3; // 调试模式是否开启
+  uint32 brightness = 4; // 当前全局亮度（0-255）
+  uint32 frame_seq = 5; // 已确认收到的调试帧序号（console 每帧递增，固件回显）
+  repeated uint32 panel_index = 6; // 三块板各自的图片索引（长度 3；老固件无此字段）
+  repeated bool lottery = 7; // 三块板各自是否在抽奖滚动中（长度 3；老固件无此字段）
+}
